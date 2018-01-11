@@ -1,4 +1,0 @@
-language: csharp
-solution: Eagle Tunnel.sln
-dist: trusty
-sudo: required
