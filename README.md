@@ -10,6 +10,10 @@ Eagle Tunnel with GUI for Windows
 
 ![Eagle-Tunnel](./capture.PNG)
 
+## 下载
+
+[最新发布](https://github.com/eaglexiang/eagle.tunnel.dotnet/releases/tag/1.1.2)
+
 ## 协议
 
 [LICENSE](./LICENSE)
