@@ -29,15 +29,22 @@ namespace eagle.tunnel.dotnet.winform
         public MainForm()
         {
             InitializeComponent();
-            Conf.Init(@".\eagle-tunnel.conf");
+            string localPath = System.Reflection.Assembly.GetEntryAssembly().Location;
+            localPath = localPath.Substring(0, localPath.LastIndexOf('\\')) + System.IO.Path.DirectorySeparatorChar;
+            string configFilePath = localPath + "eagle-tunnel.conf";
+            Conf.Init(configFilePath);
+            if (Conf.allConf["config dir"][0] != localPath)
+            {
+                Conf.allConf["config dir"][0] = localPath;
+                Conf.Save();
+            }
+            speed = 0;
+            oldSpeed = -1;
         }
 
         private void MainForm_Load(object sender, EventArgs e)
         {
             UI_Update();
-            Thread threadCheckSpeed = new Thread(CheckSpeed);
-            threadCheckSpeed.IsBackground = true;
-            threadCheckSpeed.Start();
         }
 
         private void UI_Update()
@@ -52,7 +59,6 @@ namespace eagle.tunnel.dotnet.winform
             }
             checkBox_SOCKS.Checked = Conf.EnableSOCKS;
             checkBox_HTTP.Checked = Conf.EnableHTTP;
-            checkBox_ET.Checked = Conf.EnableEagleTunnel;
 
             checkBox_User.Checked = Conf.LocalUser != null;
             if (checkBox_User.Checked)
@@ -68,11 +74,26 @@ namespace eagle.tunnel.dotnet.winform
                 textBox_Key.Enabled = false;
             }
 
+            switch (Conf.Status)
+            {
+                case Conf.ProxyStatus.ENABLE:
+                    radio_Proxy.Checked = true;
+                    break;
+                case Conf.ProxyStatus.SMART:
+                    radioButton_Smart.Checked = true;
+                    break;
+                default:
+                    radio_Direct.Checked = true;
+                    break;
+            }
+
             button_Save.Enabled = false;
         }
 
+        bool enableProxy = false;
         private void Proxy_Set(bool enable)
         {
+            enableProxy = enable;
             bool settingsReturn, refreshReturn;
 
             RegistryKey registry = Registry.CurrentUser.OpenSubKey
@@ -110,8 +131,16 @@ namespace eagle.tunnel.dotnet.winform
         {
             if (radio_Proxy.Checked)
             {
+                Conf.Status = Conf.ProxyStatus.ENABLE;
+                Conf.DnsCacheTti = 600;
+                Conf.Save();
+                EagleTunnelSender.FlushDnsCaches();
+                if (!enableProxy)
+                {
+                    Proxy_Set(true);
+                }
                 radio_Direct.Checked = false;
-                Proxy_Set(true);
+                radioButton_Smart.Checked = false;
             }
         }
 
@@ -119,8 +148,12 @@ namespace eagle.tunnel.dotnet.winform
         {
             if (radio_Direct.Checked)
             {
+                if (enableProxy)
+                {
+                    Proxy_Set(false);
+                }
                 radio_Proxy.Checked = false;
-                Proxy_Set(false);
+                radioButton_Smart.Checked = false;
             }
         }
 
@@ -154,38 +187,63 @@ namespace eagle.tunnel.dotnet.winform
         {
             if (button_Switch.Text == "关闭服务")
             {
-                button_Switch.Text = "关闭中...";
-                Server.Close();
+                Server.CloseAsync();// unknown exception here;
                 Proxy_Set(false);
-                button_Switch.Text = "开启服务";
+                textBox_Relayer.Enabled = true;
+                textBox_Listen.Enabled = true;
+                if (Server.IsWorking)
+                {
+                    button_Switch.Enabled = false;
+                    button_Switch.Text = "关闭中...";
+                    timer_CheckStopped.Start();
+                }
+                else
+                {
+                    button_Switch.Text = "开启服务";
+                }
             }
-            else
+            else if (button_Switch.Text == "开启服务")
             {
+                switch (Conf.Status)
+                {
+                    case Conf.ProxyStatus.ENABLE:
+                        Conf.DnsCacheTti = 600;
+                        break;
+                    case Conf.ProxyStatus.SMART:
+                        Conf.DnsCacheTti = 10;
+                        break;
+                    default:
+                        break;
+                }
                 if (Conf.LocalAddresses != null)
                 {
-                    button_Switch.Text = "开启中...";
-                    Thread thread_Server = new Thread(StartServer);
-                    thread_Server.IsBackground = true;
-                    thread_Server.Start();
-                    radio_Proxy.Checked = true;
-                    Radio_Proxy_CheckedChanged(null, null);
-                    timer_CheckWorking.Start();
+                    textBox_Relayer.Enabled = false;
+                    textBox_Listen.Enabled = false;
+                    Server.StartAsync(Conf.LocalAddresses);
+                    if (Server.IsWorking)
+                    {
+                        button_Switch.Text = "关闭服务";
+                        Proxy_Set(true);
+                    }
+                    else
+                    {
+                        button_Switch.Enabled = false;
+                        button_Switch.Text = "开启中...";
+                        timer_CheckWorking.Start();
+                    }
                 }
             }
         }
 
-        private void StartServer()
-        {
-            Server.Start(Conf.LocalAddresses);
-        }
-
         private void checkBox_SOCKS_CheckedChanged(object sender, EventArgs e)
         {
+            Conf.EnableSOCKS = checkBox_SOCKS.Checked;
             button_Save.Enabled = true;
         }
 
         private void checkBox_HTTP_CheckedChanged(object sender, EventArgs e)
         {
+            Conf.EnableHTTP = checkBox_HTTP.Checked;
             button_Save.Enabled = true;
         }
 
@@ -215,6 +273,7 @@ namespace eagle.tunnel.dotnet.winform
             Conf.EnableSOCKS = checkBox_SOCKS.Checked;
             Conf.EnableHTTP = checkBox_HTTP.Checked;
             Conf.LocalAddress_Set(textBox_Listen.Text);
+            Conf.RemoteAddress_Set(textBox_Relayer.Text);
             Conf.LocalUser = new EagleTunnelUser(textBox_ID.Text, textBox_Key.Text);
             Conf.Save();
             button_Save.Enabled = false;
@@ -222,6 +281,7 @@ namespace eagle.tunnel.dotnet.winform
 
         private void timer_CheckSpeed_Tick(object sender, EventArgs e)
         {
+            speed = Server.Speed();
             if (speed != oldSpeed)
             {
                 string print = " KB/s";
@@ -235,19 +295,8 @@ namespace eagle.tunnel.dotnet.winform
                         print = "GB/s";
                     }
                 }
-                label_Speed.Text = ((int)speed) + print;
+                label_Speed.Text = speed.ToString("f2") + print;
                 oldSpeed = speed;
-            }
-        }
-
-        private void CheckSpeed()
-        {
-            speed = 0;
-            oldSpeed = 0;
-            while (true)
-            {
-                speed = Server.Speed();
-                Thread.Sleep(1000);
             }
         }
 
@@ -256,7 +305,36 @@ namespace eagle.tunnel.dotnet.winform
             if (Server.IsWorking)
             {
                 button_Switch.Text = "关闭服务";
+                button_Switch.Enabled = true;
+                Proxy_Set(true);
                 timer_CheckWorking.Stop();
+            }
+        }
+
+        private void timer_CheckStopped_Tick(object sender, EventArgs e)
+        {
+            if (!Server.IsWorking)
+            {
+                button_Switch.Text = "开启服务";
+                button_Switch.Enabled = true;
+                timer_CheckStopped.Stop();
+            }
+        }
+
+        private void radioButton1_CheckedChanged(object sender, EventArgs e)
+        {
+            if (radioButton_Smart.Checked)
+            {
+                Conf.DnsCacheTti = 10;
+                Conf.Status = Conf.ProxyStatus.SMART;
+                Conf.Save();
+                EagleTunnelSender.FlushDnsCaches();
+                if (!enableProxy)
+                {
+                    Proxy_Set(true);
+                }
+                radio_Direct.Checked = false;
+                radio_Proxy.Checked = false;
             }
         }
     }

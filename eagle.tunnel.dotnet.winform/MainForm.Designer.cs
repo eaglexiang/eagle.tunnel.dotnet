@@ -41,7 +41,6 @@
             this.label_Key = new System.Windows.Forms.Label();
             this.checkBox_SOCKS = new System.Windows.Forms.CheckBox();
             this.checkBox_HTTP = new System.Windows.Forms.CheckBox();
-            this.checkBox_ET = new System.Windows.Forms.CheckBox();
             this.checkBox_User = new System.Windows.Forms.CheckBox();
             this.button_Save = new System.Windows.Forms.Button();
             this.button_Switch = new System.Windows.Forms.Button();
@@ -50,6 +49,8 @@
             this.label_Speed = new System.Windows.Forms.Label();
             this.timer_CheckSpeed = new System.Windows.Forms.Timer(this.components);
             this.timer_CheckWorking = new System.Windows.Forms.Timer(this.components);
+            this.timer_CheckStopped = new System.Windows.Forms.Timer(this.components);
+            this.radioButton_Smart = new System.Windows.Forms.RadioButton();
             this.SuspendLayout();
             // 
             // textBox_Key
@@ -162,16 +163,6 @@
             this.checkBox_HTTP.UseVisualStyleBackColor = true;
             this.checkBox_HTTP.CheckedChanged += new System.EventHandler(this.checkBox_HTTP_CheckedChanged);
             // 
-            // checkBox_ET
-            // 
-            this.checkBox_ET.AutoSize = true;
-            this.checkBox_ET.Location = new System.Drawing.Point(36, 161);
-            this.checkBox_ET.Name = "checkBox_ET";
-            this.checkBox_ET.Size = new System.Drawing.Size(41, 21);
-            this.checkBox_ET.TabIndex = 4;
-            this.checkBox_ET.Text = "ET";
-            this.checkBox_ET.UseVisualStyleBackColor = true;
-            // 
             // checkBox_User
             // 
             this.checkBox_User.AutoSize = true;
@@ -186,6 +177,7 @@
             // button_Save
             // 
             this.button_Save.Enabled = false;
+            this.button_Save.ForeColor = System.Drawing.SystemColors.ControlText;
             this.button_Save.Location = new System.Drawing.Point(87, 381);
             this.button_Save.Name = "button_Save";
             this.button_Save.Size = new System.Drawing.Size(75, 23);
@@ -218,12 +210,10 @@
             // radio_Proxy
             // 
             this.radio_Proxy.AutoSize = true;
-            this.radio_Proxy.Checked = true;
             this.radio_Proxy.Location = new System.Drawing.Point(108, 339);
             this.radio_Proxy.Name = "radio_Proxy";
             this.radio_Proxy.Size = new System.Drawing.Size(74, 21);
             this.radio_Proxy.TabIndex = 9;
-            this.radio_Proxy.TabStop = true;
             this.radio_Proxy.Text = "代理上网";
             this.radio_Proxy.UseVisualStyleBackColor = true;
             this.radio_Proxy.CheckedChanged += new System.EventHandler(this.Radio_Proxy_CheckedChanged);
@@ -244,20 +234,37 @@
             // 
             // timer_CheckWorking
             // 
+            this.timer_CheckWorking.Interval = 1000;
             this.timer_CheckWorking.Tick += new System.EventHandler(this.timer_CheckWorking_Tick);
+            // 
+            // timer_CheckStopped
+            // 
+            this.timer_CheckStopped.Interval = 1000;
+            this.timer_CheckStopped.Tick += new System.EventHandler(this.timer_CheckStopped_Tick);
+            // 
+            // radioButton_Smart
+            // 
+            this.radioButton_Smart.AutoSize = true;
+            this.radioButton_Smart.Location = new System.Drawing.Point(188, 339);
+            this.radioButton_Smart.Name = "radioButton_Smart";
+            this.radioButton_Smart.Size = new System.Drawing.Size(50, 21);
+            this.radioButton_Smart.TabIndex = 13;
+            this.radioButton_Smart.Text = "智能";
+            this.radioButton_Smart.UseVisualStyleBackColor = true;
+            this.radioButton_Smart.CheckedChanged += new System.EventHandler(this.radioButton1_CheckedChanged);
             // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 17F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(254, 421);
+            this.Controls.Add(this.radioButton_Smart);
             this.Controls.Add(this.label_Speed);
             this.Controls.Add(this.radio_Proxy);
             this.Controls.Add(this.radio_Direct);
             this.Controls.Add(this.button_Switch);
             this.Controls.Add(this.button_Save);
             this.Controls.Add(this.checkBox_User);
-            this.Controls.Add(this.checkBox_ET);
             this.Controls.Add(this.checkBox_HTTP);
             this.Controls.Add(this.checkBox_SOCKS);
             this.Controls.Add(this.label_Key);
@@ -300,14 +307,15 @@
         private System.Windows.Forms.Label label_Key;
         private System.Windows.Forms.CheckBox checkBox_SOCKS;
         private System.Windows.Forms.CheckBox checkBox_HTTP;
-        private System.Windows.Forms.CheckBox checkBox_ET;
         private System.Windows.Forms.CheckBox checkBox_User;
         private System.Windows.Forms.Button button_Save;
         private System.Windows.Forms.Button button_Switch;
         private System.Windows.Forms.RadioButton radio_Direct;
         private System.Windows.Forms.RadioButton radio_Proxy;
         private System.Windows.Forms.Label label_Speed;
-        private System.Windows.Forms.Timer timer_CheckSpeed;
         private System.Windows.Forms.Timer timer_CheckWorking;
+        private System.Windows.Forms.Timer timer_CheckStopped;
+        private System.Windows.Forms.RadioButton radioButton_Smart;
+        private System.Windows.Forms.Timer timer_CheckSpeed;
     }
 }
