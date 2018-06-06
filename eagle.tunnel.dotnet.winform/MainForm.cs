@@ -29,15 +29,6 @@ namespace eagle.tunnel.dotnet.winform
         public MainForm()
         {
             InitializeComponent();
-            string localPath = System.Reflection.Assembly.GetEntryAssembly().Location;
-            localPath = localPath.Substring(0, localPath.LastIndexOf('\\')) + System.IO.Path.DirectorySeparatorChar;
-            string configFilePath = localPath + "eagle-tunnel.conf";
-            Conf.Init(configFilePath);
-            if (Conf.allConf["config dir"][0] != localPath)
-            {
-                Conf.allConf["config dir"][0] = localPath;
-                Conf.Save();
-            }
             speed = 0;
             oldSpeed = -1;
         }
@@ -274,7 +265,10 @@ namespace eagle.tunnel.dotnet.winform
             Conf.EnableHTTP = checkBox_HTTP.Checked;
             Conf.LocalAddress_Set(textBox_Listen.Text);
             Conf.RemoteAddress_Set(textBox_Relayer.Text);
-            Conf.LocalUser = new EagleTunnelUser(textBox_ID.Text, textBox_Key.Text);
+            if (EagleTunnelUser.TryParse(textBox_ID.Text + ':' + textBox_Key.Text, out EagleTunnelUser user, true))
+            {
+                Conf.LocalUser = user;
+            }
             Conf.Save();
             button_Save.Enabled = false;
         }
@@ -284,17 +278,23 @@ namespace eagle.tunnel.dotnet.winform
             speed = Server.Speed();
             if (speed != oldSpeed)
             {
-                string print = " KB/s";
+                string print = " B/s";
                 if (speed > 1024)
                 {
-                    speed /= 1024;
-                    print = " MB/s";
+                    speed /= 1204;
+                    print = "KB/s";
                     if (speed > 1024)
                     {
                         speed /= 1024;
-                        print = "GB/s";
+                        print = " MB/s";
+                        if (speed > 1024)
+                        {
+                            speed /= 1024;
+                            print = "GB/s";
+                        }
                     }
                 }
+                speed = speed < 0 ? 0 : speed;
                 label_Speed.Text = speed.ToString("f2") + print;
                 oldSpeed = speed;
             }
